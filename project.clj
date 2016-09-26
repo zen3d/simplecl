@@ -1,4 +1,4 @@
-(defproject thi.ng/simplecl "0.2.2"
+(defproject thi.ng/simplecl "0.2.3"
   :description  "Clojure wrapper & highlevel processing pipeline ops for JOCL/OpenCL."
   :url          "http://thi.ng/simplecl"
   :license      {:name "Apache Software License 2.0"
@@ -17,10 +17,15 @@
                                       [criterium "0.4.3"]]
                        :resource-paths ["dev-resources"]
                        :jvm-opts ^:replace ["-Xms512m" "-Xmx2g"]
-                       :global-vars {*warn-on-reflection* true}
+                       :global-vars {*warn-on-reflection* false} ;;; was true
                        :aliases {"cleantest" ["do" "clean" "test"]}}}
 
-  :pom-addition [:developers [:developer
-                              [:name "Karsten Schmidt"]
-                              [:url "http://postspectacular.com"]
-                              [:timezone "0"]]])
+  :pom-addition [:developers
+                 [:developer
+                  [:name "Karsten Schmidt"]
+                  [:url "http://postspectacular.com"]
+                  [:timezone "0"]]
+                 [:developer
+                  [:name "Dan McCabe"]
+                  [:url "http://www.zen3d.com"]]
+                 ])
