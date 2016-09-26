@@ -1,6 +1,5 @@
-(ns thi.ng.simplecl.core
+(ns simplecl.core
   "Clojure wrappers around OpenCL & JOCL."
-  ^{:author "Karsten Schmidt"}
   (:import
    [com.jogamp.opencl
     CLResource CLBuffer CLMemory$Mem
@@ -12,7 +11,7 @@
    [com.jogamp.common.nio Buffers]
    [java.nio Buffer ByteBuffer DoubleBuffer FloatBuffer IntBuffer])
   (:require
-   [thi.ng.simplecl.utils :as clu]
+   [simplecl.utils :as clu]
    [clojure.java.io :as io]))
 
 ;;(set! *warn-on-reflection* true)

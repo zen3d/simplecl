@@ -1,11 +1,10 @@
-(ns thi.ng.simplecl.ops
+(ns simplecl.ops
   "High level OpenCL processing operations & helpers."
-  ^{:author "Karsten Schmidt"}
   (:import
     [java.nio Buffer])
   (:require
-    [thi.ng.simplecl.core :as cl]
-    [thi.ng.simplecl.utils :as clu]
+    [simplecl.core :as cl]
+    [simplecl.utils :as clu]
     [clojure.pprint :refer [pprint]]))
 
 (defn init-programs

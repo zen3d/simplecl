@@ -1,14 +1,13 @@
-(ns thi.ng.simplecl.test.verlet
+(ns simplecl.test.verlet
   "2D Verlet physics cloth simulation example."
-  ^{:author "Karsten Schmidt"}
   (:import
    [java.awt Color Graphics2D RenderingHints]
    [java.awt.image BufferedImage]
    [javax.imageio ImageIO])
   (:require
-   [thi.ng.simplecl.core :as cl]
-   [thi.ng.simplecl.utils :as clu]
-   [thi.ng.simplecl.ops :as ops]
+   [simplecl.core :as cl]
+   [simplecl.utils :as clu]
+   [simplecl.ops :as ops]
    [thi.ng.structgen.core :as sg]
    [thi.ng.structgen.parser :as sp]
    [clojure.java.io :as io]

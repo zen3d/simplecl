@@ -1,6 +1,5 @@
-(ns thi.ng.simplecl.utils
+(ns simplecl.utils
   "Misc utility functions used by other simplecl namespaces."
-  ^{:author "Karsten Schmidt"}
   (:import
     [java.io File InputStream ByteArrayInputStream])
   (:require

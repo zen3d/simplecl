@@ -1,8 +1,8 @@
-(ns thi.ng.simplecl.test.debug
+(ns simplecl.test.debug
   (:require
-   [thi.ng.simplecl.core :as cl]
-   [thi.ng.simplecl.utils :as clu]
-   [thi.ng.simplecl.ops :as ops]
+   [simplecl.core :as cl]
+   [simplecl.utils :as clu]
+   [simplecl.ops :as ops]
    [thi.ng.structgen.core :as sg]
    [thi.ng.structgen.parser :as sp]))
 

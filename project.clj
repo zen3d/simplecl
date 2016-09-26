@@ -1,4 +1,4 @@
-(defproject thi.ng/simplecl "0.2.3"
+(defproject simplecl "0.2.3"
   :description  "Clojure wrapper & highlevel processing pipeline ops for JOCL/OpenCL."
   :url          "http://thi.ng/simplecl"
   :license      {:name "Apache Software License 2.0"

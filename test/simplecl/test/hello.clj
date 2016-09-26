@@ -1,9 +1,8 @@
-(ns thi.ng.simplecl.test.hello
-  ^{:author "Karsten Schmidt"}
+(ns simplecl.test.hello
   (:require
-   [thi.ng.simplecl.core :as cl]
-   [thi.ng.simplecl.utils :as clu]
-   [thi.ng.simplecl.ops :as ops]))
+   [simplecl.core :as cl]
+   [simplecl.utils :as clu]
+   [simplecl.ops :as ops]))
 
 (def hello-kernel
   "__kernel void HelloCL(__global const float* a,
