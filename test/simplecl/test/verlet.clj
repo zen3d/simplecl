@@ -115,9 +115,9 @@
            [{:write s-buf}]
            (ops/flipflop iter q-buf p-buf
                          {:name "SpringUpdate" :in [s-buf bounds] :n nums :args [[nums :int]]})
-           [{:write c-buf}]
+           [{:write-buffer c-buf}]
            [{:name "ConstrainParticles" :in [q-buf c-buf] :out p-buf
-             :n nump :read [:out] :args [[nump :int] [numc :int]]}])))
+             :n nump :read-buffer [:out] :args [[nump :int] [numc :int]]}])))
 
 (defn update-pipeline
   "Releases the current OpenCL particle & spring buffers and generates new ones for

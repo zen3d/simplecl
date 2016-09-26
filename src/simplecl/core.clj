@@ -380,7 +380,7 @@
   Each queued item is a vector of `[item type blocking? or args]`:
 
       item - CLBuffer or CLKernel instance (kernels must be pre-configured)
-      type - one of :read, :write or :1d
+      type - one of :read-buffer, :write-buffer or :1d
       blocking? - only used for buffers, true for blocking transfer (default false)
 
   Type `:1d` is used to enqueue a 1D kernel (no other kernel types are currently
@@ -393,18 +393,18 @@
   executes `my-kernel` and finally synchronously reads back the output buffer:
 
       (enqueue
-        [buf-in :write]
-        [buf-out :write]
+        [buf-in :write-buffer]
+        [buf-out :write-buffer]
         [my-kernel :1d :global 1024 :local 128]
-        [buf-out :read true])
+        [buf-out :read-buffer true])
 
   Also see `execute-pipeline` for a higher level usage of this function."
   [& items]
   (doseq [[item type & args] items]
     (cond
-     (= type :read)
+     (= type :read-buffer)
      (.putReadBuffer ^CLCommandQueue *queue* item (true? (first args)))
-     (= type :write)
+     (= type :write-buffer)
      (.putWriteBuffer ^CLCommandQueue *queue* item (true? (first args)))
      (= type :1d)
      (let [{:keys [global local offset]

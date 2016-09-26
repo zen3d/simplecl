@@ -35,10 +35,12 @@
             c    (cl/make-buffer :float num :writeonly)]
         (-> (ops/compile-pipeline
              :steps [{:name "HelloCL"
-                      :in [a b] :out c
-                      :write [:in :out] :read [:out]
-                      :args [[num :int]]
-                      :n num}])
+                      :in           [a b]
+                      :out          c
+                      :write-buffer [:in :out]
+                      :read-buffer  [:out]
+                      :args         [[num :int]]
+                      :n            num}])
             (ops/execute-pipeline :verbose :true)
             (cl/buffer-seq)
             (verify num))))))

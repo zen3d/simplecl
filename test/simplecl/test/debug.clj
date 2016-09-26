@@ -48,13 +48,13 @@ kernel void Debug(__global Foo* in,
             n      (-> bar sg/struct-spec :foo sg/length)
             _      (println :n n :sizeof (sg/sizeof bar))
             pipe   (ops/compile-pipeline
-                    :steps [{:name  "Debug"
-                             :in    pclbuf
-                             :out   qclbuf
-                             :n     n
-                             :write [:in :out]
-                             :read  [:out]
-                             :args  [[n :int] [0.5 :float]]}])]
+                    :steps [{:name         "Debug"
+                             :in           pclbuf
+                             :out          qclbuf
+                             :n            n
+                             :write-buffer [:in :out]
+                             :read-buffer  [:out]
+                             :args         [[n :int] [0.5 :float]]}])]
         (->> (ops/execute-pipeline pipe :verbose true)
              (sg/decode bar)
              (println))))))
