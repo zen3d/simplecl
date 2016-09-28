@@ -1,8 +1,14 @@
 (ns simplecl.test.image
+  (:import
+    [javax.imageio ImageIO]
+    [java.awt.image BufferedImage RenderedImage WritableRaster DataBuffer]
+    )
   (:require
     [simplecl.core :as cl]
     [simplecl.utils :as clu]
-    [simplecl.ops :as ops]))
+    [simplecl.ops :as ops]
+    [clojure.java.io :as io])
+  )
 
 (def image-kernel
   "__kernel void invert(__global const float* a,
@@ -21,32 +27,41 @@
     "verified:"
     (= results (map #(float (* % %2)) (range num) (reverse (range num))))))
 
+(defn ^BufferedImage load-image
+  ([^String path]
+   (with-open [in (clu/resource-stream path)]
+     (ImageIO/read in))))
+
 (defn image-cl
-  [& {:keys [num device] :or {num 1024}}]
+  [& {:keys [path device] :or {path "images/Mandrill.png"}}]
   (cl/with-state
     (cl/init-state :device device :program (clu/str->stream image-kernel))
     (println "using device:" (cl/device-name))
     (if-not (cl/build-ok?)
       (println "build log:\n----------\n" (cl/build-log))
-      (let [num  (* 1024 num)
-            data (range num)
-            a    (cl/as-clbuffer :float data :readonly)
-            b    (cl/as-clbuffer :float (reverse data) :readonly)
-            c    (cl/make-buffer :float num :writeonly)]
+      (let [img (load-image path)
+            width (.getWidth img)
+            height (.getHeight img)
+            a    (cl/into-image img)
+            b    (cl/into-image img)
+            c    (cl/make-image width height)
+            ]
         (-> (ops/compile-pipeline
               :steps [{:name "invert"
-                       :in           [a b]
-                       :out          c
-                       :write-buffer [:in :out]
-                       :read-buffer  [:out]
-                       :args         [[num :int]]
-                       :n            num}])
+                       :in          [a b]
+                       :out         c
+                       :write-image [:in :out]
+                       :read-image  [:out]
+                       :args        [[num :int]]
+                       :n           num}])
             (ops/execute-pipeline :verbose :true)
             (cl/buffer-seq)
             (verify num))))))
 
 (defn -main
   [& [device]]
-  ;;(hello-cl :num 1024 :device :cpu)
-  ;;(hello-cl :num 1024 :device :gpu)
-  (image-cl :num 1024 :device (keyword device)))
+  ;;(hello-cl :path "Mandril.tiff" :device :cpu)
+  ;;(hello-cl :path "Mandril.tiff" :device :gpu)
+  (image-cl :path "images/Mandrill.png" :device (keyword device)))
+
+(-main)

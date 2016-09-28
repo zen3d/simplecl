@@ -1,18 +1,22 @@
 (ns simplecl.core
   "Clojure wrappers around OpenCL & JOCL."
   (:import
-   [com.jogamp.opencl
-    CLResource CLBuffer CLMemory$Mem
-    CLCommandQueue CLContext CLKernel
-    CLDevice CLDevice$Type
-    CLProgram CLProgram$Status
-    CLPlatform]
-   [com.jogamp.opencl.util Filter]
-   [com.jogamp.common.nio Buffers]
-   [java.nio Buffer ByteBuffer DoubleBuffer FloatBuffer IntBuffer])
+    [com.jogamp.opencl
+     CLResource CLBuffer
+     CLImage CLImageFormat CLImageFormat$ChannelOrder CLImageFormat$ChannelType
+     CLImage2d
+     CLMemory$Mem
+     CLCommandQueue CLContext CLKernel
+     CLDevice CLDevice$Type
+     CLProgram CLProgram$Status
+     CLPlatform]
+    [com.jogamp.opencl.util Filter]
+    [com.jogamp.common.nio Buffers]
+    [java.awt.image BufferedImage]
+    [java.nio Buffer ByteBuffer DoubleBuffer FloatBuffer IntBuffer])
   (:require
-   [simplecl.utils :as clu]
-   [clojure.java.io :as io]))
+    [simplecl.utils :as clu]
+    [clojure.java.io :as io]))
 
 ;;(set! *warn-on-reflection* true)
 
@@ -40,10 +44,10 @@
 
 (def build-states
   "Possible OpenCL program build states. Also see `build-status` fn."
-  {CLProgram$Status/BUILD_SUCCESS :success
-   CLProgram$Status/BUILD_NONE :none
+  {CLProgram$Status/BUILD_SUCCESS     :success
+   CLProgram$Status/BUILD_NONE        :none
    CLProgram$Status/BUILD_IN_PROGRESS :in-progress
-   CLProgram$Status/BUILD_ERROR :error})
+   CLProgram$Status/BUILD_ERROR       :error})
 
 ;;; Useful pre-defined filters for selecting CL platforms. A number of those
 ;;; can be passed to `select-platform`. Each filter is implemented as HOF,
@@ -63,10 +67,10 @@
       (.isAtLeast p major minor))))
 
 (defn platform-vendor-matches?
-   [re]
-   (proxy [Filter] []
-     (accept [^CLPlatform p]
-       (not (nil? (re-find re (.getVendor p)))))))
+  [re]
+  (proxy [Filter] []
+    (accept [^CLPlatform p]
+      (not (nil? (re-find re (.getVendor p)))))))
 
 ;; # CL state handling
 
@@ -129,15 +133,15 @@
   to filter results optionally."
   ([ctx-or-platform] (available-devices ctx-or-platform :all))
   ([ctx-or-platform dev-type]
-     (cond
-      (isa? (type ctx-or-platform) CLContext)
-      (vec (filter #(= (.getType ^CLDevice %) (device-types dev-type))
-                   (.getDevices ^CLContext ctx-or-platform)))
-      (isa? (type ctx-or-platform) CLPlatform)
-      (into [] (.listCLDevices ^CLPlatform ctx-or-platform
-                               (into-array [(device-types dev-type)])))
-      :default
-      (throw (IllegalArgumentException. "Argument is not a CLContext or CLPlatform")))))
+   (cond
+     (isa? (type ctx-or-platform) CLContext)
+     (vec (filter #(= (.getType ^CLDevice %) (device-types dev-type))
+                  (.getDevices ^CLContext ctx-or-platform)))
+     (isa? (type ctx-or-platform) CLPlatform)
+     (into [] (.listCLDevices ^CLPlatform ctx-or-platform
+                              (into-array [(device-types dev-type)])))
+     :default
+     (throw (IllegalArgumentException. "Argument is not a CLContext or CLPlatform")))))
 
 (defn ^CLDevice max-device
   "Returns the maximum FLOPS device for the given context or platform
@@ -146,15 +150,15 @@
   ([] (.getMaxFlopsDevice ^CLContext *context*))
   ([ctx-or-platform] (.getMaxFlopsDevice ctx-or-platform))
   ([ctx-or-platform dev-type]
-     (cond
-      (isa? (type ctx-or-platform) CLContext)
-      (.getMaxFlopsDevice ctx-or-platform
-                          (get device-types dev-type CLDevice$Type/DEFAULT))
-      (isa? (type ctx-or-platform) CLPlatform)
-      (.getMaxFlopsDevice ctx-or-platform
-                          (into-array (get device-types dev-type CLDevice$Type/DEFAULT)))
-      :default
-      (throw (IllegalArgumentException. "Argument is not a CLContext or CLPlatform")))))
+   (cond
+     (isa? (type ctx-or-platform) CLContext)
+     (.getMaxFlopsDevice ctx-or-platform
+                         (get device-types dev-type CLDevice$Type/DEFAULT))
+     (isa? (type ctx-or-platform) CLPlatform)
+     (.getMaxFlopsDevice ctx-or-platform
+                         (into-array (get device-types dev-type CLDevice$Type/DEFAULT)))
+     :default
+     (throw (IllegalArgumentException. "Argument is not a CLContext or CLPlatform")))))
 
 (defn device-name
   "Returns the device name of the current `*device*` or given device arg."
@@ -176,14 +180,14 @@
   A `start` index can be given optionally."
   ([b len] (slice b 0 len))
   ([b start len]
-     (let [b (if (isa? (type b) CLBuffer)
-               (nio-buffer b) b)]
+   (let [b (if (isa? (type b) CLBuffer)
+             (nio-buffer b) b)]
+     (.position b start)
+     (.limit b (+ start len))
+     (let [nb (.slice b)]
        (.position b start)
-       (.limit b (+ start len))
-       (let [nb (.slice b)]
-         (.position b start)
-         (.limit b (.capacity b))
-         nb))))
+       (.limit b (.capacity b))
+       nb))))
 
 (defmacro buffer-seq*
   [type suffix]
@@ -191,8 +195,8 @@
     `(defn ^:private ~name
        [^{:tag ~type} b#]
        (lazy-seq
-        (when (pos? (.remaining b#))
-          (cons (.get b#) (~name b#)))))))
+         (when (pos? (.remaining b#))
+           (cons (.get b#) (~name b#)))))))
 
 (buffer-seq* ByteBuffer :byte)
 (buffer-seq* DoubleBuffer :double)
@@ -202,8 +206,8 @@
 (defn ^:private buffer-seq-generic
   [^Buffer b]
   (lazy-seq
-   (when (pos? (.remaining b))
-     (cons (.get b) (buffer-seq-generic b)))))
+    (when (pos? (.remaining b))
+      (cons (.get b) (buffer-seq-generic b)))))
 
 (defn buffer-seq
   "Produces a lazy-seq of the remaining values in the given NIO buffer."
@@ -213,11 +217,11 @@
                 [(type (nio-buffer b)) (nio-buffer b)]
                 [t b])]
     (cond
-     (isa? t ByteBuffer) (buffer-seq-byte b)
-     (isa? t DoubleBuffer) (buffer-seq-double b)
-     (isa? t FloatBuffer) (buffer-seq-float b)
-     (isa? t IntBuffer) (buffer-seq-int b)
-     :default (buffer-seq-generic b))))
+      (isa? t ByteBuffer) (buffer-seq-byte b)
+      (isa? t DoubleBuffer) (buffer-seq-double b)
+      (isa? t FloatBuffer) (buffer-seq-float b)
+      (isa? t IntBuffer) (buffer-seq-int b)
+      :default (buffer-seq-generic b))))
 
 (defn release
   "Releases any resources of the given JOCL items. Called on a CLContext it will
@@ -233,10 +237,10 @@
   (doseq [b buffers]
     (let [t (type b)]
       (cond
-       (isa? t Buffer) (.rewind ^Buffer b)
-       (isa? t CLBuffer) (.rewind (nio-buffer b))
-       :default (throw (IllegalArgumentException.
-                        (str "can't rewind a " t))))))
+        (isa? t Buffer) (.rewind ^Buffer b)
+        (isa? t CLBuffer) (.rewind (nio-buffer b))
+        :default (throw (IllegalArgumentException.
+                          (str "can't rewind a " t))))))
   (last buffers))
 
 (defn build-log
@@ -245,7 +249,7 @@
   ([] (build-log *program* *device*))
   ([^CLProgram program] (build-log program *device*))
   ([^CLProgram program ^CLDevice device]
-     (.getBuildLog program device)))
+   (.getBuildLog program device)))
 
 (defn build-status
   "Returns the build status of `program` for the given `device`.
@@ -254,13 +258,13 @@
   ([] (build-status *program* *device*))
   ([^CLProgram program] (build-status program *device*))
   ([^CLProgram program ^CLDevice device]
-     (get build-states (.getBuildStatus program *device*))))
+   (get build-states (.getBuildStatus program *device*))))
 
 (defn build-ok?
   ([] (build-ok? *program* *device*))
   ([^CLProgram program] (build-ok? program *device*))
   ([^CLProgram program ^CLDevice device]
-     (= :success (build-status program device))))
+   (= :success (build-status program device))))
 
 (defn get-source
   "Returns the source code of `program` (if omitted defaults to `*program*`)."
@@ -276,10 +280,10 @@
   If none given, uses the default `*context*`."
   ([] (release-on-shutdown *context*))
   ([^CLContext ctx]
-     (when ctx
-       (.addShutdownHook
-        (Runtime/getRuntime)
-        (Thread. (fn [] (prn "releasing CL context...") (release ctx)))))))
+   (when ctx
+     (.addShutdownHook
+       (Runtime/getRuntime)
+       (Thread. (fn [] (prn "releasing CL context...") (release ctx)))))))
 
 ;; # CL data type factories
 
@@ -290,12 +294,12 @@
   be created on all devices."
   ([] (CLContext/create))
   ([platform-or-devices]
-     (cond
-      (isa? (type platform-or-devices) CLPlatform)
-        (CLContext/create ^CLPlatform platform-or-devices)
-      (sequential? platform-or-devices)
-        (CLContext/create (into-array CLDevice platform-or-devices))
-      :default (throw (IllegalArgumentException. "Argument must be a CLPlatform or seq of CLDevice")))))
+   (cond
+     (isa? (type platform-or-devices) CLPlatform)
+     (CLContext/create ^CLPlatform platform-or-devices)
+     (sequential? platform-or-devices)
+     (CLContext/create (into-array CLDevice platform-or-devices))
+     :default (throw (IllegalArgumentException. "Argument must be a CLPlatform or seq of CLDevice")))))
 
 (defn ^CLProgram make-program
   "Creates an input stream for `src` and compiles it into a CLProgram using the
@@ -303,11 +307,11 @@
   `opts` are either keywords matching presets defined in `build-opts` or
   actual OpenCL build option strings."
   ([src & opts]
-     (with-open [^java.io.InputStream is (io/input-stream src)]
-       (let [opts-array (clu/args->array string? build-opts opts)]
-         (if (pos? (count opts-array))
-           (.build (.createProgram ^CLContext *context* is) opts-array)
-           (.build (.createProgram ^CLContext *context* is)))))))
+   (with-open [^java.io.InputStream is (io/input-stream src)]
+     (let [opts-array (clu/args->array string? build-opts opts)]
+       (if (pos? (count opts-array))
+         (.build (.createProgram ^CLContext *context* is) opts-array)
+         (.build (.createProgram ^CLContext *context* is)))))))
 
 (defn ^CLCommandQueue make-commandqueue
   "Creates a new command queue on the given `device` or current `*device*`,
@@ -324,18 +328,18 @@
   ([^CLProgram prog name] (.createCLKernel prog name)))
 
 (defmulti ^CLBuffer make-buffer
-  "Produces a new CLBuffer instance of the given data `type`, `size`
-  (number of buffer elements) and `usage`, a number of CL memory usage flags
-  (see `usage-types` for further details). Usage defaults to `:readwrite`.
-  Implemented as multimethod for `:double`, `:float`, and `:int`."
-  (fn [type size & usage] type))
+          "Produces a new CLBuffer instance of the given data `type`, `size`
+          (number of buffer elements) and `usage`, a number of CL memory usage flags
+          (see `usage-types` for further details). Usage defaults to `:readwrite`.
+          Implemented as multimethod for `:double`, `:float`, and `:int`."
+          (fn [type size & usage] type))
 
 (defmacro ^:private make-buffer*
   [type f]
   `(defmethod ^{:tag CLBuffer :private true} make-buffer ~type
      [_# size# & usage#]
      (~f ^CLContext *context* (int size#)
-         (clu/args->array usage-types (or usage# [:readwrite])))))
+       (clu/args->array usage-types (or usage# [:readwrite])))))
 
 (make-buffer* :byte .createByteBuffer)
 (make-buffer* :double .createDoubleBuffer)
@@ -362,17 +366,17 @@
                      (see build-options for possible values)"
   [& {:keys [platform context device queue program]}]
   (let [platform (or platform (select-platform))
-        ctx (or context (make-context platform))]
+        ctx      (or context (make-context platform))]
     (with-context ctx
-      (let [device (cond (nil? device) (max-device)
-                         (keyword? device) (max-device ctx device)
-                         :default device)
-            queue (or queue (make-commandqueue device))
-            program (when program
-                      (if (vector? program)
-                        (apply make-program program)
-                        (make-program program)))]
-        {:ctx ctx :device device :queue queue :program program}))))
+                  (let [device  (cond (nil? device) (max-device)
+                                      (keyword? device) (max-device ctx device)
+                                      :default device)
+                        queue   (or queue (make-commandqueue device))
+                        program (when program
+                                  (if (vector? program)
+                                    (apply make-program program)
+                                    (make-program program)))]
+                    {:ctx ctx :device device :queue queue :program program}))))
 
 (defn ^CLCommandQueue enqueue
   "Submits the given buffers and kernels to the current command `*queue*` for
@@ -380,7 +384,7 @@
   Each queued item is a vector of `[item type blocking? or args]`:
 
       item - CLBuffer or CLKernel instance (kernels must be pre-configured)
-      type - one of :read-buffer, :write-buffer or :1d
+      type - one of :read-buffer, :read-image, :write-buffer, :write-buffer, :1d, or :2d
       blocking? - only used for buffers, true for blocking transfer (default false)
 
   Type `:1d` is used to enqueue a 1D kernel (no other kernel types are currently
@@ -402,16 +406,24 @@
   [& items]
   (doseq [[item type & args] items]
     (cond
-     (= type :read-buffer)
-     (.putReadBuffer ^CLCommandQueue *queue* item (true? (first args)))
-     (= type :write-buffer)
-     (.putWriteBuffer ^CLCommandQueue *queue* item (true? (first args)))
-     (= type :1d)
-     (let [{:keys [global local offset]
-            :or {offset 0}} (apply hash-map args)]
-       (.put1DRangeKernel ^CLCommandQueue *queue* item offset global local))
-     :default
-     (throw (IllegalArgumentException. (str "invalid type: " type))))))
+      (= type :read-buffer)
+      (.putReadBuffer ^CLCommandQueue *queue* item (true? (first args)))
+      (= type :read-image)
+      (.putReadImage ^CLCommandQueue *queue* item (true? (first args)))
+      (= type :write-buffer)
+      (.putWriteBuffer ^CLCommandQueue *queue* item (true? (first args)))
+      (= type :write-image)
+      (.putWriteImage ^CLCommandQueue *queue* item (true? (first args)))
+      (= type :1d)
+      (let [{:keys [global local offset]
+             :or   {offset 0}} (apply hash-map args)]
+        (.put1DRangeKernel ^CLCommandQueue *queue* item offset global local))
+      (= type :2d)
+      (let [{:keys [globalX globalY localX localY offsetX offsetY]
+             :or   {offsetX 0}} (apply hash-map args)]
+        (.put2DRangeKernel ^CLCommandQueue *queue* item offsetX offsetY globalX globalY localX localY))
+      :default
+      (throw (IllegalArgumentException. (str "invalid type: " type))))))
 
 (defn flush-queue
   "Flushes given CL command queue or if none specified uses `*queue*`."
@@ -428,22 +440,22 @@
   (.putArgs k (into-array buffers))
   (doseq [[a type] args]
     (cond
-     (= :int type) (.putArg k (int a))
-     (= :float type) (.putArg k (float a))
-     (= :double type) (.putArg k (double a))
-     :default (prn "invalid arg type" type)))
+      (= :int type) (.putArg k (int a))
+      (= :float type) (.putArg k (float a))
+      (= :double type) (.putArg k (double a))
+      :default (prn "invalid arg type" type)))
   (.rewind k))
 
 ;; # Buffer operations
 
 (defmulti ^CLBuffer fill-buffer
-  "Fills all remaining elements in CLBuffer `b` with repeated calls to `f`,
-  a function taking a single argument, the current buffer position.
-  Rewinds and returns `b`. Acts directly on the underlying NIO buffer
-  and implemented as multimethod with type hints for performance and
-  to cast each result of `f` to the correct type required by `b`.
-  Implemented for byte, double, float and int buffers."
-  (fn [^CLBuffer b f] (class (.getBuffer b))))
+          "Fills all remaining elements in CLBuffer `b` with repeated calls to `f`,
+          a function taking a single argument, the current buffer position.
+          Rewinds and returns `b`. Acts directly on the underlying NIO buffer
+          and implemented as multimethod with type hints for performance and
+          to cast each result of `f` to the correct type required by `b`.
+          Implemented for byte, double, float and int buffers."
+          (fn [^CLBuffer b f] (class (.getBuffer b))))
 
 (defmacro fill-buffer*
   [type cast]
@@ -463,17 +475,17 @@
 (fill-buffer* IntBuffer int)
 
 (defmulti into-buffer
-  "Fills the remaining items (or less) of CLBuffer `b` with items
-  from the given sequence or NIO buffer. Returns `b`. Acts directly
-  on the underlying NIO buffer and implemented as multimethod with
-  type hints for performance and to cast each item of the sequence
-  to the correct type required by `b`. Implemented for byte, double,
-  float and int buffers.
+          "Fills the remaining items (or less) of CLBuffer `b` with items
+          from the given sequence or NIO buffer. Returns `b`. Acts directly
+          on the underlying NIO buffer and implemented as multimethod with
+          type hints for performance and to cast each item of the sequence
+          to the correct type required by `b`. Implemented for byte, double,
+          float and int buffers.
 
-  Note: Does **NOT** rewind buffer to allow filling buffer from
-  multiple sources. You MUST call `rewind` before enqueueing the
-  buffer for processing."
-  (fn [^CLBuffer b seq] (class (.getBuffer b))))
+          Note: Does **NOT** rewind buffer to allow filling buffer from
+          multiple sources. You MUST call `rewind` before enqueueing the
+          buffer for processing."
+          (fn [^CLBuffer b seq] (class (.getBuffer b))))
 
 (defmacro into-buffer*
   [type cast]
@@ -482,7 +494,7 @@
      (let [^{:tag ~type} nb# (.getBuffer b#)]
        (if (instance? Buffer s#)
          (.put nb# s#)
-         (loop[s# (take (.remaining nb#) s#)]
+         (loop [s# (take (.remaining nb#) s#)]
            (when (seq s#)
              (.put nb# (~cast (first s#)))
              (recur (rest s#))))))
@@ -494,17 +506,17 @@
 (into-buffer* IntBuffer int)
 
 (defmulti ^CLBuffer as-clbuffer
-  "Wraps a Clojure seq or NIO buffer `b` into a CLBuffer with the
-  given `usage` flags. Usage defaults to `:readwrite`.
-  Implemented as multimethod for byte, double, float and int buffers.
+          "Wraps a Clojure seq or NIO buffer `b` into a CLBuffer with the
+          given `usage` flags. Usage defaults to `:readwrite`.
+          Implemented as multimethod for byte, double, float and int buffers.
 
-  If wrapping a seq the first arg must be a keyword to indicate the
-  buffer type (see `make-buffer`). All elements of the seq are then
-  copied into the buffer using `into-buffer`. Rewinds buffer before
-  returning it.
+          If wrapping a seq the first arg must be a keyword to indicate the
+          buffer type (see `make-buffer`). All elements of the seq are then
+          copied into the buffer using `into-buffer`. Rewinds buffer before
+          returning it.
 
-  Example: `(as-clbuffer :float [1 2 3 4])`"
-  (fn [b & usage] (if (keyword? b) :seq (class b))))
+          Example: `(as-clbuffer :float [1 2 3 4])`"
+          (fn [b & usage] (if (keyword? b) :seq (class b))))
 
 (defmethod ^{:tag CLBuffer :private true} as-clbuffer :seq
   [type s & usage]
@@ -518,9 +530,9 @@
      [^{:tag ~type} b# & usage#]
      (let [b#
            (if (.isDirect b#) b#
-               (let [^ByteBuffer dest# (Buffers/newDirectByteBuffer (* ~size (.remaining b#)))]
-                 (-> dest# (~view) (.put b#))
-                 (rewind b# dest#)))]
+                              (let [^ByteBuffer dest# (Buffers/newDirectByteBuffer (* ~size (.remaining b#)))]
+                                (-> dest# (~view) (.put b#))
+                                (rewind b# dest#)))]
        (.createBuffer ^CLContext *context* b#
                       (clu/args->array usage-types (or usage# [:readwrite]))))))
 
@@ -528,3 +540,54 @@
 (as-clbuffer* FloatBuffer .asFloatBuffer Buffers/SIZEOF_FLOAT)
 (as-clbuffer* DoubleBuffer .asDoubleBuffer Buffers/SIZEOF_DOUBLE)
 (as-clbuffer* IntBuffer .asIntBuffer Buffers/SIZEOF_INT)
+
+;; # Image operations
+
+(defn get-image-data
+  "Get RGBA buffer from image."
+  [^BufferedImage image]
+  (let [width  (.getWidth image)
+        height (.getHeight image)
+        data   (int-array (* 4 width height))]
+    (.getRGB image 0 0 width height data 0 (* 4 width))
+    )
+  )
+
+(defn set-image-data
+  "Set Image to RGBA buffer."
+  [^BufferedImage image data]
+  (let [width  (.getWidth image)
+        height (.getHeight image)]
+    (.setRGB image 0 0 width height data 0 (* 4 width))
+    )
+  )
+
+
+(defn ^CLImage make-image
+  "Create an empty CLImage"
+  [width height]
+  (let [buffer (Buffers/newDirectIntBuffer (* 4 width height))
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
+        image2d (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format (clu/args->array usage-types [:readwrite]))]
+    image2d))
+
+(defn ^CLImage into-image
+  "Copy a BufferedImage into a CLImage."
+  [^BufferedImage image]
+  (let [width  (.getWidth image)
+        height (.getHeight image)
+        data   (get-image-data image)
+        buffer (Buffers/newDirectIntBuffer data)
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
+        image2d (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format (clu/args->array usage-types [:readwrite]))
+        ]
+    image2d)
+  )
+
+(defn ^BufferedImage from-image
+  "Copy a CLImage into a BufferedImage."
+  [^CLImage image]
+  (let [width  (.width image)
+        height (.height image)]
+    nil)
+  )
