@@ -15,13 +15,13 @@
   constant sampler_t imageSampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
   __kernel void invert(read_only image2d_t src,
                        write_only image2d_t dst,
-                       int width,
-                       int height)
+                       const int width,
+                       const int height)
   {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     if (coord.x < width && coord.y < height) {
       uint4 temp = read_imageui(src, imageSampler, coord); // xyzw == bgra
-      write_imageui(dst, coord, (uint4)(~temp.x, ~temp.y, ~temp.z, temp.w));
+      write_imageui(dst, coord, (uint4)(255 - temp.x, 255 - temp.y, 255 - temp.z, temp.w));
     }
   }
   "
@@ -79,8 +79,9 @@
 
 (defn -main
   [& [device]]
-  ;;(image-cl :path "Mandril.tiff" :device :cpu)
-  ;;(image-cl :path "Mandril.tiff" :device :gpu)
-  (image-cl :path "images/Mandrill.png" :device (keyword device)))
+  ;;(image-cl :path "images/Mandrill.png" :device :cpu)
+  ;;(image-cl :path "images/Mandrill.png" :device :gpu)
+  (image-cl :path "images/Mandrill.png" :device (keyword device))
+  )
 
-(-main)
+;;(-main)

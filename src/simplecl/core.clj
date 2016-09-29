@@ -420,8 +420,8 @@
       (= type :2d)
       (let [{:keys [global local offset]
              :or   {offset 0}} (apply hash-map args)
-            local-sqrt (Math/floor (Math/sqrt local))]
-        (.put2DRangeKernel ^CLCommandQueue *queue* item offset offset global global local-sqrt local-sqrt))
+            ]
+        (.put2DRangeKernel ^CLCommandQueue *queue* item offset offset global global 0 0))
       :default
       (throw (IllegalArgumentException. (str "invalid type: " type))))))
 
@@ -566,7 +566,7 @@
   "Create an empty CLImage"
   [width height]
   (let [buffer (Buffers/newDirectIntBuffer (* width height))
-        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT8)
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/UNSIGNED_INT8)
         usage (clu/args->array usage-types [:readwrite])
         climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)]
     climage))
@@ -578,7 +578,7 @@
         height (.getHeight image)
         data   (get-image-data image)
         buffer (Buffers/newDirectIntBuffer data)
-        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT8)
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/UNSIGNED_INT8)
         usage (clu/args->array usage-types [:readwrite])
         climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)
         ]

@@ -171,6 +171,7 @@
                                :program (if program (program programs))))
                           q (q-append q kd write-buffer :write-buffer)
                           q (q-append q kd write-image :write-image)
+                          ;; TODO: the line below breaks 1d kernels; FIXME
                           q (conj q [kernel :2d :global global :local local])
                           q (q-append q kd read-buffer :read-buffer true)
                           q (q-append q kd read-image :read-image true)]
