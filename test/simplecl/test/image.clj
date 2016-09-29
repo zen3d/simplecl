@@ -1,8 +1,4 @@
 (ns simplecl.test.image
-  (:import
-    [javax.imageio ImageIO]
-    [java.awt.image BufferedImage]
-    (java.io FileOutputStream))
   (:require
     [simplecl.core :as cl]
     [simplecl.utils :as clu]
@@ -27,26 +23,9 @@
   "
   )
 
-(defn ^BufferedImage load-image
-  ([^String path]
-   (with-open [in (clu/resource-stream path)]
-     (ImageIO/read in))))
-
-(defn save-image
-  ([^String path ^BufferedImage image]
-   (with-open [out (FileOutputStream. path)]
-     (ImageIO/write image "PNG" out))))
-
-(defn cvt-image
-  [data width height]
-  (let [image (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)]
-    (.setRGB image 0 0 width height data 0 width)
-    image)
-  )
-
 (defn dump-image
-  [result path width height]
-  (save-image path (cvt-image result width height))
+  [image path]
+  (clu/save-image path image)
   )
 
 (defn image-cl
@@ -56,7 +35,7 @@
     (println "using device:" (cl/device-name))
     (if-not (cl/build-ok?)
       (println "build log:\n----------\n" (cl/build-log))
-      (let [img (load-image path)
+      (let [img (clu/load-image path)
             width (.getWidth img)
             height (.getHeight img)
             src    (cl/into-climage img)
@@ -73,8 +52,8 @@
                        :n (max width height)}])
           (ops/execute-pipeline :verbose :true)
           (cl/buffer-seq)
-          (int-array)
-          (dump-image "result.png" width height)
+          (cl/image-from-kernel-output width height)
+          (dump-image "result.png")
           )))))
 
 (defn -main

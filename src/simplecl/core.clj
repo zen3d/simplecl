@@ -585,17 +585,12 @@
     climage)
   )
 
-;;; TODO: deprecated???
-(defn ^BufferedImage from-climage
-  "Copy a CLImage into a BufferedImage."
-  [^CLImage climage]
-  (let [width  (.width climage)
-        height (.height climage)
-        buffer (.getBuffer climage)
-        image  (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
-        data (int-array (* width height))
+(defn ^BufferedImage image-from-kernel-output
+  "Copy kernel output into a BufferedImage."
+  [result width height]
+  (let [data  (int-array result)
+        image (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
         ]
-    ;(Buffer/get buffer)
     (set-image-data image data)
     image)
   )

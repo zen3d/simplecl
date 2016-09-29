@@ -1,9 +1,14 @@
 (ns simplecl.utils
   "Misc utility functions used by other simplecl namespaces."
   (:import
-    [java.io File InputStream ByteArrayInputStream])
+    [java.io File InputStream ByteArrayInputStream]
+    [javax.imageio ImageIO]
+    [java.awt.image BufferedImage]
+    [java.io FileOutputStream]
+    )
   (:require
-    [clojure.java.io :as io]))
+    [clojure.java.io :as io])
+  )
 
 (defn args->array
   "Looks up keyword `args` in `coll`, filters out any nil values and converts
@@ -41,3 +46,16 @@
 (defn delete-file
   [f]
   (io/delete-file f true))
+
+(defn ^BufferedImage load-image
+  "Load a BufferedImage from a file."
+  ([^String path]
+   (with-open [in (resource-stream path)]
+     (ImageIO/read in))))
+
+(defn save-image
+  "Save a BufferedImage to a file."
+  ([^String path ^BufferedImage image]
+   (with-open [out (FileOutputStream. path)]
+     (ImageIO/write image "PNG" out))))
+
