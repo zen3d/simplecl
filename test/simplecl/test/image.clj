@@ -1,7 +1,7 @@
 (ns simplecl.test.image
   (:import
     [javax.imageio ImageIO]
-    [java.awt.image BufferedImage RenderedImage WritableRaster DataBuffer]
+    [java.awt.image BufferedImage]
     (java.io FileOutputStream))
   (:require
     [simplecl.core :as cl]
@@ -20,20 +20,17 @@
   {
     int2 coord = (int2)(get_global_id(0), get_global_id(1));
     if (coord.x < width && coord.y < height) {
-      uint4 temp = read_imageui(src, imageSampler, coord);
-      write_imageui(dst, coord, (uint4)(temp.x ^ 255, temp.y ^ 255, temp.z ^ 255, temp.w ^ 255));
+      uint4 temp = read_imageui(src, imageSampler, coord); // xyzw == bgra
+      write_imageui(dst, coord, (uint4)(~temp.x, ~temp.y, ~temp.z, temp.w));
     }
   }
-")
+  "
+  )
 
 (defn ^BufferedImage load-image
   ([^String path]
    (with-open [in (clu/resource-stream path)]
      (ImageIO/read in))))
-
-(defn make-image
-  [width height]
-  )
 
 (defn save-image
   ([^String path ^BufferedImage image]
@@ -43,9 +40,8 @@
 (defn cvt-image
   [data width height]
   (let [image (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)]
-    (.setRGB image 0 0 width height data 0 (* 4 width))
+    (.setRGB image 0 0 width height data 0 width)
     image)
-
   )
 
 (defn dump-image
@@ -83,8 +79,8 @@
 
 (defn -main
   [& [device]]
-  ;;(hello-cl :path "Mandril.tiff" :device :cpu)
-  ;;(hello-cl :path "Mandril.tiff" :device :gpu)
+  ;;(image-cl :path "Mandril.tiff" :device :cpu)
+  ;;(image-cl :path "Mandril.tiff" :device :gpu)
   (image-cl :path "images/Mandrill.png" :device (keyword device)))
 
 (-main)

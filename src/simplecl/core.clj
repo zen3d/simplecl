@@ -4,7 +4,6 @@
     [com.jogamp.opencl
      CLResource CLBuffer
      CLImage CLImageFormat CLImageFormat$ChannelOrder CLImageFormat$ChannelType
-     CLImage2d
      CLMemory$Mem
      CLCommandQueue CLContext CLKernel
      CLDevice CLDevice$Type
@@ -83,7 +82,7 @@
 
 (defmacro with-platform
   [^CLPlatform p & body]
-  `(binding [^CLPlatform *platform** ~p] (do ~@body)))
+  `(binding [^CLPlatform *platform* ~p] (do ~@body)))
 
 (defmacro with-context
   [^CLContext ctx & body]
@@ -258,7 +257,7 @@
   ([] (build-status *program* *device*))
   ([^CLProgram program] (build-status program *device*))
   ([^CLProgram program ^CLDevice device]
-   (get build-states (.getBuildStatus program *device*))))
+   (get build-states (.getBuildStatus program device))))
 
 (defn build-ok?
   ([] (build-ok? *program* *device*))
@@ -549,8 +548,8 @@
   [^BufferedImage image]
   (let [width  (.getWidth image)
         height (.getHeight image)
-        data   (int-array (* 4 width height))]
-    (.getRGB image 0 0 width height data 0 (* 4 width))
+        data   (int-array (* width height))]
+    (.getRGB image 0 0 width height data 0 width)
     )
   )
 
@@ -559,15 +558,15 @@
   [^BufferedImage image data]
   (let [width  (.getWidth image)
         height (.getHeight image)]
-    (.setRGB image 0 0 width height data 0 (* 4 width))
+    (.setRGB image 0 0 width height data 0 width)
     )
   )
 
 (defn ^CLImage make-climage
   "Create an empty CLImage"
   [width height]
-  (let [buffer (Buffers/newDirectIntBuffer (* 4 width height))
-        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
+  (let [buffer (Buffers/newDirectIntBuffer (* width height))
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT8)
         usage (clu/args->array usage-types [:readwrite])
         climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)]
     climage))
@@ -579,13 +578,14 @@
         height (.getHeight image)
         data   (get-image-data image)
         buffer (Buffers/newDirectIntBuffer data)
-        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
+        format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT8)
         usage (clu/args->array usage-types [:readwrite])
         climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)
         ]
     climage)
   )
 
+;;; TODO: deprecated???
 (defn ^BufferedImage from-climage
   "Copy a CLImage into a BufferedImage."
   [^CLImage climage]
@@ -593,7 +593,7 @@
         height (.height climage)
         buffer (.getBuffer climage)
         image  (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
-        data (int-array (* 4 width height))
+        data (int-array (* width height))
         ]
     ;(Buffer/get buffer)
     (set-image-data image data)
