@@ -420,8 +420,9 @@
         (.put1DRangeKernel ^CLCommandQueue *queue* item offset global local))
       (= type :2d)
       (let [{:keys [global local offset]
-             :or   {offset 0}} (apply hash-map args)]
-        (.put2DRangeKernel ^CLCommandQueue *queue* item offset offset global 128 local 1))
+             :or   {offset 0}} (apply hash-map args)
+            local-sqrt (Math/floor (Math/sqrt local))]
+        (.put2DRangeKernel ^CLCommandQueue *queue* item offset offset global global local-sqrt local-sqrt))
       :default
       (throw (IllegalArgumentException. (str "invalid type: " type))))))
 

@@ -74,7 +74,7 @@
                        :write-image [:in :out]
                        :read-image  [:out]
                        :args        [[width :int] [height :int]]
-                       :n 1024}])
+                       :n (max width height)}])
           (ops/execute-pipeline :verbose :true)
           (cl/buffer-seq)
           (int-array)
