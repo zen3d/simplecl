@@ -155,7 +155,7 @@
         q-append-buf (fn [q coll mode & args]
                            (reduce (fn [q buf] (conj q (vec (concat [buf mode] args)))) q coll))
         kdefs (reduce
-                (fn [{:keys [q k ki]} {:keys [id name in read write program] :as step}]
+                (fn [{:keys [q k ki]} {:keys [id name in read-buffer write-buffer read-image write-image program] :as step}]
                   (if name
                     (let [id (or id name)
                           {:keys [kernel local global in out] :as kd}
@@ -169,16 +169,24 @@
                                              :default b))
                                         (if (vector? in) in [in])))
                                :program (if program (program programs))))
-                          q (q-append q kd write :write)
-                          q (conj q [kernel :1d :global global :local local])
-                          q (q-append q kd read :read true)]
+                          q (q-append q kd write-buffer :write-buffer)
+                          q (q-append q kd write-image :write-image)
+                          q (conj q [kernel :2d :global global :local local])
+                          q (q-append q kd read-buffer :read-buffer true)
+                          q (q-append q kd read-image :read-image true)]
                       {:q q :k (conj k kd) :ki (assoc ki id kd)})
-                    (let [q (if read
+                    (let [q (if read-buffer
                               (q-append-buf q
                                 (if (sequential? read) read [read]) :read true) q)
-                          q (if write
+                          q (if read-image
                               (q-append-buf q
-                                (if (sequential? write) write [write]) :write) q)]
+                                            (if (sequential? read-image) read-image [read-image]) :read-image true) q)
+                          q (if write-buffer
+                              (q-append-buf q
+                                (if (sequential? write-buffer) write-buffer [write-buffer]) :write-buffer) q)
+                          q (if write-image
+                              (q-append-buf q
+                                            (if (sequential? write-image) write-image [write-image]) :write-image) q)]
                       {:q q :k k :ki ki})))
                 {:q [] :k [] :ki {}} steps)]
     {:queue (:q kdefs)

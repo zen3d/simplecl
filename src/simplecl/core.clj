@@ -419,9 +419,9 @@
              :or   {offset 0}} (apply hash-map args)]
         (.put1DRangeKernel ^CLCommandQueue *queue* item offset global local))
       (= type :2d)
-      (let [{:keys [globalX globalY localX localY offsetX offsetY]
-             :or   {offsetX 0}} (apply hash-map args)]
-        (.put2DRangeKernel ^CLCommandQueue *queue* item offsetX offsetY globalX globalY localX localY))
+      (let [{:keys [global local offset]
+             :or   {offset 0}} (apply hash-map args)]
+        (.put2DRangeKernel ^CLCommandQueue *queue* item offset offset global 128 local 1))
       :default
       (throw (IllegalArgumentException. (str "invalid type: " type))))))
 
@@ -543,7 +543,7 @@
 
 ;; # Image operations
 
-(defn get-image-data
+(defn- get-image-data
   "Get RGBA buffer from image."
   [^BufferedImage image]
   (let [width  (.getWidth image)
@@ -553,7 +553,7 @@
     )
   )
 
-(defn set-image-data
+(defn- set-image-data
   "Set Image to RGBA buffer."
   [^BufferedImage image data]
   (let [width  (.getWidth image)
@@ -562,16 +562,16 @@
     )
   )
 
-
-(defn ^CLImage make-image
+(defn ^CLImage make-climage
   "Create an empty CLImage"
   [width height]
   (let [buffer (Buffers/newDirectIntBuffer (* 4 width height))
         format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
-        image2d (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format (clu/args->array usage-types [:readwrite]))]
-    image2d))
+        usage (clu/args->array usage-types [:readwrite])
+        climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)]
+    climage))
 
-(defn ^CLImage into-image
+(defn ^CLImage into-climage
   "Copy a BufferedImage into a CLImage."
   [^BufferedImage image]
   (let [width  (.getWidth image)
@@ -579,15 +579,22 @@
         data   (get-image-data image)
         buffer (Buffers/newDirectIntBuffer data)
         format (CLImageFormat. CLImageFormat$ChannelOrder/RGBA CLImageFormat$ChannelType/SIGNED_INT32)
-        image2d (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format (clu/args->array usage-types [:readwrite]))
+        usage (clu/args->array usage-types [:readwrite])
+        climage (.createImage2d ^CLContext *context* buffer (int width) (int height) ^CLImageFormat format usage)
         ]
-    image2d)
+    climage)
   )
 
-(defn ^BufferedImage from-image
+(defn ^BufferedImage from-climage
   "Copy a CLImage into a BufferedImage."
-  [^CLImage image]
-  (let [width  (.width image)
-        height (.height image)]
-    nil)
+  [^CLImage climage]
+  (let [width  (.width climage)
+        height (.height climage)
+        buffer (.getBuffer climage)
+        image  (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
+        data (int-array (* 4 width height))
+        ]
+    ;(Buffer/get buffer)
+    (set-image-data image data)
+    image)
   )
