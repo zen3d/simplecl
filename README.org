@@ -28,6 +28,8 @@ Please see the extensive doc strings in the source and the examples below:
 
 *** Hello CL example
 
+*TODO: WARNING: Hello CL example is currently broken.*
+
 A trivial "Hello world" style example is located in [[test/simplecl/test/hello.clj][this namespace]]. It
 defines a kernel to factor two float arrays and shows the required
 steps to run this on either CPU or GPU devices (by default the most
